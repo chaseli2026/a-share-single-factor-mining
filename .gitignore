@@ -1,0 +1,23 @@
+# 原始行情数据（体积大 + 数据源条款限制，不入库）
+data/panel/
+data/feat/
+*.parquet
+*.npy
+*.npz
+
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# 编辑器 / 系统
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# 临时产物
+sf/_out/
+*.log

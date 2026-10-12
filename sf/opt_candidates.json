@@ -1,0 +1,226 @@
+[
+ {
+  "group": "优化",
+  "name": "KLEN_opt1",
+  "base": "KLEN",
+  "logic": "把简单振幅(H-L)换成真实波幅TR（含跳空）：研报对 std20 的同款改进",
+  "expr": "ts_mean(max2(H-L, max2(abs(H-ref(A,1)), abs(L-ref(A,1)))),%d)/A"
+ },
+ {
+  "group": "优化",
+  "name": "KLEN_opt2",
+  "base": "KLEN",
+  "logic": "分母由当日开盘换成昨收复权价（跨股更可比），并加 EMA 记忆",
+  "expr": "ema((H-L)/pre,%d)"
+ },
+ {
+  "group": "优化",
+  "name": "KLEN_opt3",
+  "base": "KLEN",
+  "logic": "TR 的换手加权 EMA：放量日的高波动权重更大（研报 std20_opti_2 同构）",
+  "expr": "div(ema(mul(max2(H-L, max2(abs(H-ref(A,1)), abs(L-ref(A,1)))), turn),%d), ema(turn,%d))/A"
+ },
+ {
+  "group": "优化",
+  "name": "LOW0_opt1",
+  "base": "LOW0",
+  "logic": "分母换成昨收（L/A 的 A 含当日跳空，换 pre 更干净）",
+  "expr": "L/pre"
+ },
+ {
+  "group": "优化",
+  "name": "LOW0_opt2",
+  "base": "LOW0",
+  "logic": "由当日最低扩展到窗口低位分位",
+  "expr": "ts_quant(L,%d,0.1)/A"
+ },
+ {
+  "group": "优化",
+  "name": "LOW0_opt3",
+  "base": "LOW0",
+  "logic": "低位相对收盘加 EMA 记忆，平滑单日噪声",
+  "expr": "ema(L/pre,%d)"
+ },
+ {
+  "group": "优化",
+  "name": "KLOW1_opt1",
+  "base": "KLOW1",
+  "logic": "下影线分母换昨收",
+  "expr": "(min2(O,A)-L)/pre"
+ },
+ {
+  "group": "优化",
+  "name": "KLOW1_opt2",
+  "base": "KLOW1",
+  "logic": "下影线相对整体振幅（消掉个股波动尺度差异）",
+  "expr": "div(min2(O,A)-L, H-L+1e-9)"
+ },
+ {
+  "group": "优化",
+  "name": "KLOW1_opt3",
+  "base": "KLOW1",
+  "logic": "下影线的 EMA 记忆",
+  "expr": "ema((min2(O,A)-L)/pre,%d)"
+ },
+ {
+  "group": "优化",
+  "name": "VMIN_opt1",
+  "base": "VMIN",
+  "logic": "由最小值换 5% 分位（对单日异常更稳健）",
+  "expr": "ts_quant(turn,%d,0.05)/turn"
+ },
+ {
+  "group": "优化",
+  "name": "VMIN_opt2",
+  "base": "VMIN",
+  "logic": "窗口最低换手 / 窗口均值（纯粹的换手压缩度）",
+  "expr": "ts_min(turn,%d)/ts_mean(turn,%d)"
+ },
+ {
+  "group": "优化",
+  "name": "VMIN_opt3",
+  "base": "VMIN",
+  "logic": "换手压缩度 × 价格位置（低位缩量）",
+  "expr": "mul(ts_min(turn,%d)/ts_mean(turn,%d), pos)"
+ },
+ {
+  "group": "优化",
+  "name": "VQTLD_opt1",
+  "base": "VQTLD",
+  "logic": "分位由 20% 降到 10%",
+  "expr": "ts_quant(turn,%d,0.1)/turn"
+ },
+ {
+  "group": "优化",
+  "name": "VQTLD_opt2",
+  "base": "VQTLD",
+  "logic": "低分位/高分位（换手分布的形状，而非水平）",
+  "expr": "ts_quant(turn,%d,0.1)/ts_quant(turn,%d,0.9)"
+ },
+ {
+  "group": "优化",
+  "name": "MA_opt1",
+  "base": "MA",
+  "logic": "均线偏离度除以波动（动量/波动比，跨股可比）",
+  "expr": "div(ts_mean(A,%d)/A-1, ts_std(r1,%d))"
+ },
+ {
+  "group": "优化",
+  "name": "MA_opt2",
+  "base": "MA",
+  "logic": "用最低价均值替代收盘均值（下沿支撑位偏离）",
+  "expr": "ts_mean(L,%d)/A"
+ },
+ {
+  "group": "优化",
+  "name": "MIN_opt1",
+  "base": "MIN",
+  "logic": "最值换 10% 分位（更稳健的下沿）",
+  "expr": "ts_quant(L,%d,0.1)/A"
+ },
+ {
+  "group": "优化",
+  "name": "MIN_opt2",
+  "base": "MIN",
+  "logic": "下沿的 EMA 记忆",
+  "expr": "ema(L,%d)/A"
+ },
+ {
+  "group": "优化",
+  "name": "STD_opt1",
+  "base": "STD",
+  "logic": "波动改用真实波幅 TR（研报对 std20 的原始改进）",
+  "expr": "ts_std(max2(H-L, max2(abs(H-ref(A,1)), abs(L-ref(A,1)))),%d)/A"
+ },
+ {
+  "group": "优化",
+  "name": "STD_opt2",
+  "base": "STD",
+  "logic": "只用下行波动（半方差，研报强调的上下不对称）",
+  "expr": "ts_std(mul(lt(A-ref(A,1),0), r1),%d)"
+ },
+ {
+  "group": "优化",
+  "name": "CORD_opt1",
+  "base": "CORD",
+  "logic": "相关对象换成换手率绝对水平（而非其变化）",
+  "expr": "ts_corr(r1, turn,%d)"
+ },
+ {
+  "group": "优化",
+  "name": "CORD_opt2",
+  "base": "CORD",
+  "logic": "量价相关改用上影线 × 换手，捕捉冲高放量",
+  "expr": "ts_corr(ush, log(turn),%d)"
+ },
+ {
+  "group": "优化",
+  "name": "VRANK_opt1",
+  "base": "VRANK",
+  "logic": "换手秩的 EMA 记忆",
+  "expr": "ema(ts_rank(turn,%d),%d)"
+ },
+ {
+  "group": "对照",
+  "name": "CTRL_mono",
+  "base": "VRANK",
+  "logic": "秩免疫对照：单调变换（3 次幂）应给出与 VRANK 逐位相同的 IC",
+  "expr": "power(ts_rank(turn,%d),3)"
+ },
+ {
+  "group": "优化",
+  "name": "STD_opt1b",
+  "base": "STD_opt1",
+  "logic": "TR 的 EMA 版（研报用 EMA 替代 Mean 的同一手法）",
+  "expr": "ema(max2(H-L, max2(abs(H-ref(A,1)), abs(L-ref(A,1)))),%d)/A"
+ },
+ {
+  "group": "优化",
+  "name": "STD_opt1c",
+  "base": "STD_opt1",
+  "logic": "TR 除以换手（波动/流动性归一）",
+  "expr": "div(ts_mean(max2(H-L, max2(abs(H-ref(A,1)), abs(L-ref(A,1)))),%d), ts_mean(turn,%d))"
+ },
+ {
+  "group": "优化",
+  "name": "STD_opt3",
+  "base": "STD_opt1",
+  "logic": "上/下行 TR 之差（半方差思路用在真实波幅上）",
+  "expr": "sub(ts_mean(mul(gt(r1,0), max2(H-L, max2(abs(H-ref(A,1)), abs(L-ref(A,1))))),%d), ts_mean(mul(lt(r1,0), max2(H-L, max2(abs(H-ref(A,1)), abs(L-ref(A,1))))),%d))"
+ },
+ {
+  "group": "优化",
+  "name": "MA_opt3",
+  "base": "MA_opt2",
+  "logic": "最低价均值偏离 / 波动",
+  "expr": "div(ts_mean(L,%d)/A-1, ts_std(r1,%d))"
+ },
+ {
+  "group": "优化",
+  "name": "MA_opt4",
+  "base": "MA",
+  "logic": "均线偏离 × 对数换手（趋势放量）",
+  "expr": "mul(ts_mean(A,%d)/A-1, log(turn))"
+ },
+ {
+  "group": "优化",
+  "name": "KLOW1_opt4",
+  "base": "KLOW1",
+  "logic": "下影的窗口均值（时序版下影）",
+  "expr": "ts_mean(div(min2(O,A)-L, pre),%d)"
+ },
+ {
+  "group": "优化",
+  "name": "KLOW1_opt5",
+  "base": "KLOW1",
+  "logic": "下影/振幅（归一化博弈结构）",
+  "expr": "div(div(min2(O,A)-L, pre), hl+1e-9)"
+ },
+ {
+  "group": "优化",
+  "name": "VMIN_opt4",
+  "base": "VMIN",
+  "logic": "相对换手的窗口最小（更极端的缩量）",
+  "expr": "ts_min(div(turn, ts_mean(turn,%d)),%d)"
+ }
+]

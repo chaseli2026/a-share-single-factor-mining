@@ -1,0 +1,326 @@
+[
+ {
+  "group": "半方差",
+  "name": "SEMIVAR_TURN",
+  "logic": "上下行半方差的换手加权差（研报成功率最高的结构，量改换手）",
+  "expr": "sub(div(ema(mul(mul(gt(r1,0), sqr(r1)), turn),%d), ema(turn,%d)), div(ema(mul(mul(lt(r1,0), sqr(r1)), turn),%d), ema(turn,%d)))"
+ },
+ {
+  "group": "半方差",
+  "name": "SEMIVAR_RAW",
+  "logic": "上下行半方差之差（不含量权，作对照）",
+  "expr": "sub(ema(mul(gt(r1,0), sqr(r1)),%d), ema(mul(lt(r1,0), sqr(r1)),%d))"
+ },
+ {
+  "group": "半方差",
+  "name": "SEMIDEV_ASY",
+  "logic": "上下行半离差之差（一阶矩版，对极端值更稳健）",
+  "expr": "sub(ema(mul(gt(r1,0), abs(r1)),%d), ema(mul(lt(r1,0), abs(r1)),%d))"
+ },
+ {
+  "group": "半方差",
+  "name": "SEMIVAR_RATIO",
+  "logic": "半方差不对称度除以总波动（无量纲化的偏度代理）",
+  "expr": "div(sub(ema(mul(gt(r1,0),sqr(r1)),%d), ema(mul(lt(r1,0),sqr(r1)),%d)), ts_std(r1,%d))"
+ },
+ {
+  "group": "量价",
+  "name": "VP_POW2_RESI",
+  "logic": "量比平方加权收益EMA / 趋势残差波动 —— 研报最优因子(ICIR0.87)的直接新数据版",
+  "expr": "div(ema(mul(r1, sqr(div(turn, ts_mean(turn,%d)))),%d), ts_std(ts_resi(A,%d),%d))"
+ },
+ {
+  "group": "量价",
+  "name": "VP_POW2_STD",
+  "logic": "同上但分母换成收益波动",
+  "expr": "div(ema(mul(r1, sqr(div(turn, ts_mean(turn,%d)))),%d), ts_std(r1,%d))"
+ },
+ {
+  "group": "量价",
+  "name": "VP_POW1_MAD",
+  "logic": "量比一次加权收益 / MAD（更稳健的波动归一）",
+  "expr": "div(ema(mul(r1, div(turn, ts_mean(turn,%d))),%d), ts_mad(r1,%d))"
+ },
+ {
+  "group": "量价",
+  "name": "VW_RET",
+  "logic": "换手加权平均收益（放量日的收益权重更大）",
+  "expr": "div(ema(mul(r1, turn),%d), ema(turn,%d))"
+ },
+ {
+  "group": "量价",
+  "name": "VP_CORR20",
+  "logic": "收益与换手的滚动相关（量价协同）",
+  "expr": "ts_corr(r1, turn,%d)"
+ },
+ {
+  "group": "量价",
+  "name": "VP_CORR_ABS",
+  "logic": "绝对收益与换手的相关（放量即大波动）",
+  "expr": "ts_corr(abs(r1), turn,%d)"
+ },
+ {
+  "group": "量价",
+  "name": "TURN_W_SIGN",
+  "logic": "换手加权的收益符号（放量方向）",
+  "expr": "div(ema(mul(sign(r1), turn),%d), ema(turn,%d))"
+ },
+ {
+  "group": "量价",
+  "name": "R1_LOG_TURN",
+  "logic": "收益的对数换手加权EMA（研报用的 log(volume) 结构）",
+  "expr": "ema(mul(r1, log(turn)),%d)"
+ },
+ {
+  "group": "事件",
+  "name": "ZT_MEM",
+  "logic": "涨停记忆的指数衰减（新数据独有：涨停标志）",
+  "expr": "ema(zt,%d)"
+ },
+ {
+  "group": "事件",
+  "name": "ZT_SEAL",
+  "logic": "封单额强度 × 涨停的衰减记忆",
+  "expr": "ema(mul(zt, seal),%d)"
+ },
+ {
+  "group": "事件",
+  "name": "LT_SEAL",
+  "logic": "封单/成交额（仅涨停日有值；强度越大越强）",
+  "expr": "mul(gt(lbt,0), seal)"
+ },
+ {
+  "group": "事件",
+  "name": "LT_PERSIST",
+  "logic": "近 w 日连板（连板数>1）出现次数",
+  "expr": "ts_count(gt(lbt,1),%d)"
+ },
+ {
+  "group": "事件",
+  "name": "DSZT_NEG",
+  "logic": "距上次涨停天数取负（越近越强）",
+  "expr": "neg(dszt)"
+ },
+ {
+  "group": "事件",
+  "name": "EARLY_SEAL",
+  "logic": "封板时间越早（数值越小）越强，只在涨停日计入",
+  "expr": "ts_sum(mul(zt, div(fmin,600.0)),%d)"
+ },
+ {
+  "group": "事件",
+  "name": "OPEN_TIMES",
+  "logic": "涨停日开板次数累计（炸板越多越弱）",
+  "expr": "ts_sum(mul(zt, otimes),%d)"
+ },
+ {
+  "group": "事件",
+  "name": "LT_TIMES_SUM",
+  "logic": "涨停日连板高度累计",
+  "expr": "ts_sum(mul(zt, lbt),%d)"
+ },
+ {
+  "group": "事件",
+  "name": "ZT_PREV_RET",
+  "logic": "涨停日的昨日收益累计（涨停前动量）",
+  "expr": "ts_sum(mul(zt, ref(r1,1)),%d)"
+ },
+ {
+  "group": "影线",
+  "name": "USH_LSH_DIFF",
+  "logic": "上影-下影均值差（多空影线不对称；研报缺 upper_shadow）",
+  "expr": "sub(ts_mean(ush,%d), ts_mean(lsh,%d))"
+ },
+ {
+  "group": "影线",
+  "name": "USH_TURN",
+  "logic": "上影线 × 换手（冲高放量派发）",
+  "expr": "mul(ts_mean(ush,%d), turn)"
+ },
+ {
+  "group": "影线",
+  "name": "USH_REL_RNG",
+  "logic": "上影占振幅比（无量纲的实体/影线结构）",
+  "expr": "div(ts_mean(ush,%d), ts_mean(hl,%d))"
+ },
+ {
+  "group": "影线",
+  "name": "USH_EMA",
+  "logic": "上影线的EMA记忆（持续上影=持续抛压）",
+  "expr": "ema(ush,%d)"
+ },
+ {
+  "group": "影线",
+  "name": "USH_SLOPE",
+  "logic": "上影线的趋势斜率（影线在放大还是收敛）",
+  "expr": "ts_slope(ush,%d)"
+ },
+ {
+  "group": "影线",
+  "name": "SHADOW_ASY",
+  "logic": "影线不对称 / 振幅（归一化的博弈结构）",
+  "expr": "div(sub(ts_mean(ush,%d), ts_mean(lsh,%d)), ts_mean(hl,%d))"
+ },
+ {
+  "group": "制度",
+  "name": "R1_OVER_UP",
+  "logic": "当日涨幅 / 涨停幅度（接近涨停的相对程度；新数据独有制度字段）",
+  "expr": "div(r1, toup)"
+ },
+ {
+  "group": "制度",
+  "name": "R1_OVER_UP_TURN",
+  "logic": "涨停接近度 × 对数换手",
+  "expr": "mul(div(r1, toup), log(turn))"
+ },
+ {
+  "group": "制度",
+  "name": "R1_OVER_UP_MA",
+  "logic": "涨停接近度的窗口均值",
+  "expr": "ts_mean(div(r1, toup),%d)"
+ },
+ {
+  "group": "制度",
+  "name": "DIST_ZT",
+  "logic": "1 - |涨幅|/涨停幅度（离涨跌停越远越安全）",
+  "expr": "sub(1.0, div(abs(r1), toup))"
+ },
+ {
+  "group": "趋势",
+  "name": "MOM_VOL",
+  "logic": "5/20 日均线差 ÷ 波动（短中期动量/风险比）",
+  "expr": "div(sub(ts_mean(A,5), ts_mean(A,20)), ts_std(r1,20))"
+ },
+ {
+  "group": "趋势",
+  "name": "TURN_OVER_VOL",
+  "logic": "对数换手 / 波动（Amihud 非流动性之倒数）",
+  "expr": "div(log(turn), ts_std(r1,%d))"
+ },
+ {
+  "group": "趋势",
+  "name": "RANK_DIFF",
+  "logic": "换手秩 - 收益秩（量价错配度）",
+  "expr": "sub(ts_rank(turn,%d), ts_rank(r1,%d))"
+ },
+ {
+  "group": "趋势",
+  "name": "TURN_ACCEL",
+  "logic": "短期换手 / 长期换手（换手加速度）",
+  "expr": "div(turn, ts_mean(turn,60))"
+ },
+ {
+  "group": "趋势",
+  "name": "RESI_Z",
+  "logic": "价格对线性趋势的残差标准化（趋势外的异常）",
+  "expr": "div(ts_resi(A,%d), ts_std(ts_resi(A,%d),%d))"
+ },
+ {
+  "group": "趋势",
+  "name": "BODY_TURN",
+  "logic": "K线实体均值 × 对数换手",
+  "expr": "mul(ts_mean(body,%d), log(turn))"
+ },
+ {
+  "group": "趋势",
+  "name": "POS_TURN",
+  "logic": "收盘位置 × 对数换手（高位放量）",
+  "expr": "mul(pos-0.5, log(turn))"
+ },
+ {
+  "group": "趋势",
+  "name": "GAP_TURN",
+  "logic": "跳空均值 × 对数换手",
+  "expr": "mul(ts_mean(gap,%d), log(turn))"
+ },
+ {
+  "group": "趋势",
+  "name": "INTRA_REV",
+  "logic": "日内收益的EMA / 日内波动（日内反转强度）",
+  "expr": "div(ema(intra,%d), ts_std(intra,%d))"
+ },
+ {
+  "group": "影线",
+  "name": "USH_TURN_LOG",
+  "logic": "R2：上影×对数换手（压制换手厚尾）",
+  "expr": "mul(ts_mean(ush,%d), log(turn))"
+ },
+ {
+  "group": "影线",
+  "name": "USH5_TURN",
+  "logic": "R2：短窗上影×换手",
+  "expr": "mul(ts_mean(ush,5), turn)"
+ },
+ {
+  "group": "影线",
+  "name": "USH_TURN_REL",
+  "logic": "R2：上影×相对换手（去个股换手水平）",
+  "expr": "mul(ts_mean(ush,%d), turn_rel)"
+ },
+ {
+  "group": "影线",
+  "name": "USH_TURN_RANK",
+  "logic": "R2：上影×换手5日秩（非线性权重）",
+  "expr": "mul(ts_mean(ush,%d), ts_rank(turn,5))"
+ },
+ {
+  "group": "影线",
+  "name": "USH_STD_TURN",
+  "logic": "R2：上影波动×换手",
+  "expr": "mul(ts_std(ush,%d), turn)"
+ },
+ {
+  "group": "影线",
+  "name": "USH_FRAC_TURN",
+  "logic": "R2：上影/振幅×换手（结构比×流动性）",
+  "expr": "mul(div(ts_mean(ush,%d), ts_mean(hl,%d)+1e-9), turn)"
+ },
+ {
+  "group": "影线",
+  "name": "USH60_TURN",
+  "logic": "R2：长窗上影×换手",
+  "expr": "mul(ts_mean(ush,60), turn)"
+ },
+ {
+  "group": "趋势",
+  "name": "TURN_ACCEL_5_60",
+  "logic": "R2：5日/60日换手",
+  "expr": "div(ts_mean(turn,5), ts_mean(turn,60))"
+ },
+ {
+  "group": "趋势",
+  "name": "TURN_ACCEL_5_20",
+  "logic": "R2：5日/20日换手",
+  "expr": "div(ts_mean(turn,5), ts_mean(turn,20))"
+ },
+ {
+  "group": "趋势",
+  "name": "TURN_ACCEL_LOG",
+  "logic": "R2：换手加速度取对数",
+  "expr": "log(div(turn, ts_mean(turn,60)))"
+ },
+ {
+  "group": "量价",
+  "name": "VW_RET5",
+  "logic": "R2：5日换手加权收益",
+  "expr": "div(ema(mul(r1, turn),5), ema(turn,5))"
+ },
+ {
+  "group": "量价",
+  "name": "VW_RET_SLOPE",
+  "logic": "R2：换手加权收益的斜率",
+  "expr": "ts_slope(mul(r1, turn),%d)"
+ },
+ {
+  "group": "半方差",
+  "name": "SEMIVAR_USH",
+  "logic": "R2：上影加权的上下行半方差差",
+  "expr": "sub(div(ts_sum(mul(gt(r1,0), mul(sqr(r1), ush)),%d), ts_sum(mul(gt(r1,0), ush),%d)), div(ts_sum(mul(lt(r1,0), mul(sqr(r1), ush)),%d), ts_sum(mul(lt(r1,0), ush),%d)))"
+ },
+ {
+  "group": "事件",
+  "name": "SEAL_TURN",
+  "logic": "R2：封单强度×涨停×换手",
+  "expr": "mul(mul(zt, seal), turn)"
+ }
+]
