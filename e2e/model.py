@@ -109,3 +109,15 @@ def loss_sharpe(rets: torch.Tensor, mode: str = "batch", eta: float = 0.05) -> t
     if mode == "dsr":
         return -differential_sharpe(rets, eta).mean() * (252 ** 0.5)
     return -sharpe(rets)
+
+
+def loss_return(rets: torch.Tensor) -> torch.Tensor:
+    """端到端：直接最大化**年化几何收益**。
+
+    年化收益 = (∏(1+r_t))^(252/n) − 1 = exp(252·mean(log(1+r_t))) − 1，
+    单调变换下等价于最大化 `mean(log(1+r_t))` ⇒ 损失取负号即可，且对每期收益可导。
+
+    注意：没有分母（波动），所以这条臂**只追收益、不管回撤**，
+    与 Sharpe 臂的差别正好回答「波动惩罚值多少钱」。
+    """
+    return -torch.log1p(rets.clamp_min(-0.999)).mean() * 252

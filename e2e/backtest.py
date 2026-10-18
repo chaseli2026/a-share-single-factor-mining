@@ -7,7 +7,7 @@
 
 产出：
   results/E2E-Sharpe-策略净值-<时间戳>.png    净值 + 回撤
-  results/e2e_metrics.csv                    三臂指标对照表
+  results/e2e_metrics.csv                    四臂指标对照表
 """
 from __future__ import annotations
 
@@ -30,7 +30,8 @@ HERE = Path(__file__).resolve().parent
 RES = Path(os.environ.get("E2E_OUT", HERE.parent / "results"))
 ARMS = [("mse", "两阶段：先最小化 MSE 再组合", "#8C8C8C", "--"),
         ("ic", "RankIC 损失（本项目原口径）", "#2E6DA4", "-."),
-        ("sharpe", "端到端：直接优化 Sharpe", "#E8833A", "-")]
+        ("sharpe", "端到端：直接优化 Sharpe", "#E8833A", "-"),
+        ("ret", "端到端：直接最大化年化收益", "#8E6BAE", "-")]
 
 plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei"]
 plt.rcParams["axes.unicode_minus"] = False

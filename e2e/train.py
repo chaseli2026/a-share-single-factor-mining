@@ -23,7 +23,8 @@ import numpy as np
 import torch
 
 from data import Panel
-from model import Scorer, loss_mse, loss_rank_ic, loss_sharpe, select_weights
+from model import (Scorer, loss_mse, loss_rank_ic, loss_return, loss_sharpe,
+                   select_weights)
 
 HERE = Path(__file__).resolve().parent
 OUT = Path(os.environ.get("E2E_OUT", HERE.parent / "results"))
@@ -31,7 +32,7 @@ OUT = Path(os.environ.get("E2E_OUT", HERE.parent / "results"))
 
 @dataclass
 class Cfg:
-    arm: str = "sharpe"     # mse | ic | sharpe
+    arm: str = "sharpe"     # mse | ic | sharpe | ret
     seed: int = 42
     epochs: int = 25
     steps: int = 8          # 每个 epoch 采多少个时间块
@@ -74,7 +75,7 @@ def train(panel: Panel, cfg: Cfg, log=print):
                 xt, mask, yt = torch.from_numpy(x), torch.from_numpy(m), torch.from_numpy(y)
                 s = model(xt)
 
-                if cfg.arm == "sharpe":
+                if cfg.arm in ("sharpe", "ret"):
                     if w is None or j % cfg.rebal == 0:
                         w = select_weights(s, mask, cfg.topk, cfg.temp, cfg.zmax)
                         c = 0.0 if w_prev is None else float((w - w_prev).abs().sum().detach())
@@ -91,8 +92,9 @@ def train(panel: Panel, cfg: Cfg, log=print):
                 opt.step()
                 tot, nstep = tot + float(loss.detach()), nstep + 1
 
-            if cfg.arm == "sharpe" and len(rets) > 5:
-                loss = loss_sharpe(torch.stack(rets), cfg.dsr)
+            if cfg.arm in ("sharpe", "ret") and len(rets) > 5:
+                r = torch.stack(rets)
+                loss = loss_sharpe(r, cfg.dsr) if cfg.arm == "sharpe" else loss_return(r)
                 opt.zero_grad()
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
