@@ -39,8 +39,11 @@ plt.rcParams["axes.unicode_minus"] = False
 plt.rcParams["savefig.dpi"] = 200
 
 
-def load(arm: str):
-    fs = sorted(RES.glob(f"e2e_{arm}_s*.json"))
+def load(arm: str, tag: str = "", seeds: tuple = ()):
+    pat = f"e2e_{arm}_{tag}_s*.json" if tag else f"e2e_{arm}_s*.json"
+    fs = sorted(RES.glob(pat))
+    if seeds:
+        fs = [f for f in fs if int(f.stem.split("_s")[-1]) in seeds]
     if not fs:
         return None
     runs = [json.loads(f.read_text(encoding="utf-8")) for f in fs]
@@ -63,8 +66,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--seg", default="test", choices=["val", "test"])
     ap.add_argument("--no-index", action="store_true", help="不叠加指数基准（离线场景）")
+    ap.add_argument("--seeds", default="42,43,44",
+                    help="只统计这些种子（默认 42,43,44；传空串=全部）")
+    ap.add_argument("--tag", default="all130",
+                    help="读哪一组结果（默认 all130 = 全部 130 列；传空串读无后缀的老结果）")
     a = ap.parse_args()
 
+    # 只用来算「全市场等权」内部参照，只需要掩码与 y；用 base55 单矩阵加载最快（有缓存）
     panel = Panel(feat_files=("X_base55.npy",))
     lo, hi = panel.segs[a.seg]
     days, bench = [], []
@@ -88,7 +96,7 @@ def main():
 
     rows, curves = [], {}
     for arm, name, color, ls in ARMS:
-        runs = load(arm)
+        runs = load(arm, a.tag, tuple(int(x) for x in a.seeds.split(",") if x))
         if not runs:
             continue
         per_seed = [np.asarray(r[a.seg]["daily"]) for r in runs]
@@ -155,7 +163,8 @@ def main():
     ax.axhline(1.0, color="#CCCCCC", lw=0.8)
     ax.grid(axis="y", color="#EEEEEE", lw=0.7)
     ax.legend(fontsize=9, frameon=False, loc="upper left")
-    ax.set_title(f"端到端优化 vs 两阶段基线　｜　{'测试' if a.seg=='test' else '验证'}段 "
+    feat_desc = f"{a.tag} 特征" if a.tag else "55 列量价"
+    ax.set_title(f"端到端优化 vs 两阶段基线（{feat_desc}）　｜　{'测试' if a.seg=='test' else '验证'}段 "
                  f"{dates[0]}–{dates[-1]}（{len(bench)} 个交易日）", fontsize=11, pad=8)
     for s in ("top", "right"):
         ax.spines[s].set_visible(False)
@@ -179,7 +188,7 @@ def main():
         ax.spines[s].set_visible(False)
 
     ts = datetime.now().strftime("%Y%m%d_%H%M")
-    png = RES / f"E2E-Sharpe-策略净值-{ts}.png"
+    png = RES / f"E2E-策略净值-{a.tag or 'base55'}-{ts}.png"
     fig.savefig(png, bbox_inches="tight", facecolor="white")
     plt.close(fig)
 

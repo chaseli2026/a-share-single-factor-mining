@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""e2e/train.py — 端到端组合优化训练器
+"""e2e/train.py — 端到端组合优化训练器（默认用全部 9 个特征矩阵）
 
 用法：
   python train.py --arm sharpe --seed 42 --epochs 25
@@ -45,7 +45,8 @@ class Cfg:
     lr: float = 1e-3
     wd: float = 1e-5
     dsr: str = "batch"      # sharpe 臂的损失形式：batch | dsr
-    feat: str = "X_base55.npy"
+    feat: str = ("X_base55.npy,X_extra.npy,X_mkt.npy,X_mf.npy,X_cyq.npy,"
+                  "X_kpl.npy,X_auction.npy,X_mined.npy,X_plate.npy")  # 全部 9 个矩阵
     tag: str = ""
 
 

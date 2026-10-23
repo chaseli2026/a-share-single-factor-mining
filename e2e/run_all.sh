@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# run_all.sh — 四臂 × 三种子，顺序执行（CPU，约 9 分钟）
+# run_all.sh — 四臂 × 三种子，顺序执行（CPU，全部 130 列；约 25 分钟）
+# 只跑 55 列量价：加 --feat X_base55.npy 并改 --tag base55
 # 用法：bash run_all.sh  [PY=python3]
 set -e
 PY="${PY:-python}"
