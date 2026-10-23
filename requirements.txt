@@ -3,3 +3,4 @@ pandas>=2.0
 scipy>=1.10
 torch>=2.0        # 仅 e2e/（端到端组合优化）需要
 matplotlib>=3.7   # 仅 e2e/ 出图需要
+tushare>=1.2      # 仅 e2e/benchmark.py（拉指数基准）需要

@@ -24,6 +24,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 import numpy as np
 
+import benchmark as BM
 from data import Panel
 
 HERE = Path(__file__).resolve().parent
@@ -61,6 +62,7 @@ def stats(r) -> dict:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--seg", default="test", choices=["val", "test"])
+    ap.add_argument("--no-index", action="store_true", help="不叠加指数基准（离线场景）")
     a = ap.parse_args()
 
     panel = Panel(feat_files=("X_base55.npy",))
@@ -74,6 +76,15 @@ def main():
         bench.append(float(panel.y[t][m].mean()))
     bench = np.asarray(bench)
     dates = panel.dates[days]
+
+    # 指数基准（Tushare）：主基准中证1000，另加中证全指做全市场参照
+    idx = {}
+    if not a.no_index:
+        for code in (BM.MAIN, "000985.CSI"):
+            try:
+                idx[code] = BM.aligned(dates, code, offline=True)
+            except SystemExit as e:
+                print(f"  指数基准 {code} 不可用：{e}")
 
     rows, curves = [], {}
     for arm, name, color, ls in ARMS:
@@ -99,6 +110,18 @@ def main():
                  **{k: round(float(v), 4) for k, v in b.items()},
                  "sharpe_seed_mean": round(b["sharpe"], 3), "sharpe_seed_sd": 0.0,
                  "ic_mean": np.nan, "turnover_ann": np.nan})
+    for code, r in idx.items():
+        st = stats(r)
+        rows.append({"arm": f"idx:{code}", "name": f"{dict(BM.BENCH)[code]}（{code}）", "seeds": 1,
+                     **{k: round(float(v), 4) for k, v in st.items()},
+                     "sharpe_seed_mean": round(st["sharpe"], 3), "sharpe_seed_sd": 0.0,
+                     "ic_mean": np.nan, "turnover_ann": np.nan})
+
+    # 相对主基准的年化超额（唯一可对外引用的"超额"口径）
+    main_ann = stats(idx[BM.MAIN])["ann_ret"] if BM.MAIN in idx else np.nan
+    for r in rows:
+        r["excess_vs_csi1000"] = (round(float(r["ann_ret"] - main_ann), 4)
+                                  if np.isfinite(main_ann) and r["arm"] not in ("idx:" + BM.MAIN,) else np.nan)
 
     RES.mkdir(parents=True, exist_ok=True)
     csv_p = RES / "e2e_metrics.csv"
@@ -111,7 +134,15 @@ def main():
                              gridspec_kw={"hspace": 0.12})
     ax = axes[0]
     x = np.arange(len(bench))
-    ax.plot(x, np.cumprod(1 + bench), color="#BFBFBF", lw=1.1, label="全市场等权（未计成本）")
+    for code, r in idx.items():
+        if len(r) == len(bench):
+            nm = dict(BM.BENCH)[code]
+            ax.plot(x, np.cumprod(1 + r), color="#7A7A7A" if code == BM.MAIN else "#C4C4C4",
+                    lw=1.3 if code == BM.MAIN else 1.0,
+                    ls="-" if code == BM.MAIN else (0, (4, 2)),
+                    label=f"{nm}（指数基准）")
+    ax.plot(x, np.cumprod(1 + bench), color="#DCDCDC", lw=1.0, ls=(0, (1, 2)),
+            label="全市场等权（内部参照，未计成本）")
     for arm, (name, color, ls, r) in curves.items():
         if len(r) < len(bench):
             continue
@@ -124,7 +155,7 @@ def main():
     ax.axhline(1.0, color="#CCCCCC", lw=0.8)
     ax.grid(axis="y", color="#EEEEEE", lw=0.7)
     ax.legend(fontsize=9, frameon=False, loc="upper left")
-    ax.set_title(f"端到端 Sharpe 优化 vs 两阶段基线　｜　{'测试' if a.seg=='test' else '验证'}段 "
+    ax.set_title(f"端到端优化 vs 两阶段基线　｜　{'测试' if a.seg=='test' else '验证'}段 "
                  f"{dates[0]}–{dates[-1]}（{len(bench)} 个交易日）", fontsize=11, pad=8)
     for s in ("top", "right"):
         ax.spines[s].set_visible(False)
@@ -132,7 +163,11 @@ def main():
     ax = axes[1]
     def dd(r):
         eq = np.cumprod(1 + r); return eq / np.maximum.accumulate(eq) - 1
-    ax.fill_between(x, dd(bench), 0, color="#DDDDDD", alpha=0.9, label="全市场等权")
+    ax.plot(x, dd(bench), color="#DCDCDC", lw=0.9, ls=(0, (1, 2)))
+    for code, r in idx.items():
+        if len(r) == len(bench):
+            ax.plot(x, dd(r), color="#7A7A7A" if code == BM.MAIN else "#C4C4C4", lw=1.1,
+                    ls="-" if code == BM.MAIN else (0, (4, 2)))
     for arm, (name, color, ls, r) in curves.items():
         if len(r) == len(bench):
             ax.plot(x, dd(r), color=color, lw=1.2, ls=ls)
@@ -148,9 +183,11 @@ def main():
     fig.savefig(png, bbox_inches="tight", facecolor="white")
     plt.close(fig)
 
-    print(f"{'臂':<8}{'年化':>9}{'波动':>8}{'Sharpe':>9}{'种子sd':>8}{'MDD':>9}{'RankIC':>9}{'换手':>7}")
+    print(f"{'臂':<12}{'年化':>9}{'超额':>8}{'波动':>8}{'Sharpe':>9}{'种子sd':>8}{'MDD':>9}{'RankIC':>9}{'换手':>7}")
     for r in rows:
-        print(f"{r['arm']:<8}{r['ann_ret']:>8.1%}{r['ann_vol']:>8.1%}{r['sharpe']:>9.2f}"
+        ex = r.get("excess_vs_csi1000", float("nan"))
+        exs = f"{ex:>7.1%}" if isinstance(ex, float) and np.isfinite(ex) else f"{'—':>7}"
+        print(f"{r['arm']:<12}{r['ann_ret']:>8.1%}{exs}{r['ann_vol']:>8.1%}{r['sharpe']:>9.2f}"
               f"{r['sharpe_seed_sd']:>8.2f}{r['mdd']:>9.1%}{r['ic_mean']:>9.4f}"
               f"{(r['turnover_ann'] if r['turnover_ann']==r['turnover_ann'] else float('nan')):>7.0f}")
     print("→", png)
