@@ -111,11 +111,13 @@ python sf/rho2.py
 python sf/ops.py     # 会打印秩免疫对照与因果审计结果
 ```
 
-端到端组合优化（需要 `torch`，CPU 约 7 分钟）：
+端到端组合优化（需要 `torch` + `tushare`，CPU 约 9 分钟）：
 
 ```bash
-bash e2e/run_all.sh        # 三臂 × 三种子
-python e2e/backtest.py     # 汇总 → 净值曲线 png + e2e_metrics.csv
+export TUSHARE_TOKEN=你的token
+python e2e/benchmark.py    # 拉指数基准（中证1000 等 7 个），一次即可
+bash e2e/run_all.sh        # 四臂 × 三种子
+python e2e/backtest.py     # 汇总 → 净值曲线 png + e2e_metrics.csv（含超额列）
 ```
 
 ---
